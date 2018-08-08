@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+
+<link rel="stylesheet" href="boot/css/bootstrap.min.css">
+
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<style type="text/css">
+
+	
+	#geomap{
+    width: 100%;
+    height: 400px;
+
+}
+	.btn{
+		position: absolute;
+		text-align: center;
+		padding-left: 500px;
+		size: 50px;
+    
+	}
+
+</style>
+    
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCR5PFyvraK8Cqbu-vQu7UAR-NkcABHNuw"></script>
+
+<script>
+var geocoder;
+var map;
+var marker;
+
+/*
+ * Google Map with marker
+ */
+function initialize() {
+    var initialLat = $('.search_latitude').val();
+    var initialLong = $('.search_longitude').val();
+    initialLat = initialLat?initialLat:30.3165;
+    initialLong = initialLong?initialLong:78.0322;
+
+        var latlng = new google.maps.LatLng(initialLat, initialLong);
+    var options = {
+        zoom: 16,
+        center: latlng,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+    };
+
+    map = new google.maps.Map(document.getElementById("geomap"), options);
+
+    geocoder = new google.maps.Geocoder();
+
+    marker = new google.maps.Marker({
+        map: map,
+        draggable: true,
+        position: latlng
+    });
+
+      google.maps.event.addListener(marker, "dragend", function () {
+        var point = marker.getPosition();
+        map.panTo(point);
+        geocoder.geocode({'latLng': marker.getPosition()}, function (results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                map.setCenter(results[0].geometry.location);
+                marker.setPosition(results[0].geometry.location);
+                $('.search_addr').val(results[0].formatted_address);
+                $('.search_latitude').val(marker.getPosition().lat());
+                $('.search_longitude').val(marker.getPosition().lng());
+            }
+        });
+    });
+
+}
+
+$(document).ready(function () {
+    
+    initialize();
+    
+   
+    var PostCodeid = '#search_location';
+    $(function () {
+        $(PostCodeid).autocomplete({
+            source: function (request, response) {
+                geocoder.geocode({
+                    'address': request.term
+                }, function (results, status) {
+                    response($.map(results, function (item) {
+                        return {
+                            label: item.formatted_address,
+                            value: item.formatted_address,
+                            lat: item.geometry.location.lat(),
+                            lon: item.geometry.location.lng()
+                        };
+                    }));
+                });
+            },
+
+              select: function (event, ui) {
+                $('.search_addr').val(ui.item.value);
+                $('.search_latitude').val(ui.item.lat);
+                $('.search_longitude').val(ui.item.lon);
+                var latlng = new google.maps.LatLng(ui.item.lat, ui.item.lon);
+                marker.setPosition(latlng);
+                initialize();
+            }
+        });
+    });
+
+     $('.get_map').click(function (e) {
+        var address = $(PostCodeid).val();
+        geocoder.geocode({'address': address}, function (results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                map.setCenter(results[0].geometry.location);
+                marker.setPosition(results[0].geometry.location);
+                $('.search_addr').val(results[0].formatted_address);
+                $('.search_latitude').val(marker.getPosition().lat());
+                $('.search_longitude').val(marker.getPosition().lng());
+            } else {
+                alert("Geocode was not successful for the following reason: " + status);
+            }
+        });
+        e.preventDefault();
+    });
+
+     google.maps.event.addListener(marker, 'drag', function () {
+        geocoder.geocode({'latLng': marker.getPosition()}, function (results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                if (results[0]) {
+                    $('.search_addr').val(results[0].formatted_address);
+                    $('.search_latitude').val(marker.getPosition().lat());
+                    $('.search_longitude').val(marker.getPosition().lng());
+                }
+            }
+        });
+    });
+});
+</script>
+
+
+<body>
+
+	<form>
+<div class="form-group input-group">
+    <input type="text" id="search_location" class="form-control" placeholder="Search location">
+    <div class="input-group-btn">
+        <button class="btn btn-default get_map" type="submit">
+            Locate
+        </button>
+    </div>
+</div>
+</form>
+
+
+<div id="geomap"></div>
+
+
+
+
+<p><b>Address:</b> <input type="text" class="search_addr" size="45" id="add"></p>
+<p><b>Latitude:</b> <input type="text" class="search_latitude"  size="30" id="lat"></p>
+<p><b>Longitude:</b> <input type="text" class="search_longitude" size="30" id="long"></p>
+
+<form  method="POST" action="db3.php">
+<h1> Crime Location Details</h1>
+<p><b>Address:</b> <input type="text"  name="address" size="45" id="add"></p>
+<p><b>Latitude:</b> <input type="text" name="lat" size="30" id="lat"></p>
+<p><b>Longitude:</b> <input type="text" name="lng" size="30" id="long"></p>
+
+<h1>Crime Details</h1>
+<p><b>Complaint Type :</b> <select name="sel">
+    	<option value="THEFT"><b>THEFT</b></option>
+	    <option value="MURDER"><b>MURDER</b></option>
+	    <option value="KIDNAPPING"><b>KIDNAPPING</b></option>
+	    <option value="DRUG TRAFFICKING"><b>DRUG TRAFFICKING</b></option>
+	  </select></p>
+
+	  <p><b>Complaint Description:</b> <textarea class="form-control" rows="5" cols="5" id="comment" name="desc" required></textarea>
+
+  <p><b>Date Of Crime:</b> <input type="text" size="30" name="date" id="date" placeholder="dd/mm/yyyy" required pattern="\d{1,2}/\d{1,2}/\d{4}"></p>
+<p><b>Time:</b> <input type="text" size="30" id="time" name="time" pattern="\d{1,2}:\d{2}([ap]m)?" placeholder="(eg. 18:17 or 6:17pm)"></p>
+<input type="submit"  name="submit" value="REGISTER" class="btn"  required  />
+</form>
+
+
+
+
+</body>
+</html>
